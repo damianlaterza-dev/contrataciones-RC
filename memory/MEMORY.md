@@ -1,0 +1,1 @@
+- [Modelo proyecto vs contrato](project_modelo_proyecto_contrato.md) — el proyecto tiene fechas propias y puede exceder al contrato; el contrato no es contenedor estricto. Única regla cruzada: prórroga limita fecha_fin del proyecto.
