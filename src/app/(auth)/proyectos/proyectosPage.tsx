@@ -606,7 +606,7 @@ export default function ProyectosPage({
                         });
                         setValue("fecha_inicio", "", { shouldValidate: false });
                         setValue("fecha_fin", "", { shouldValidate: false });
-                        setValue("horas_proyectadas", undefined, {
+                        setValue("horas_proyectadas", undefined as never, {
                           shouldValidate: false,
                         });
                         replace([]);

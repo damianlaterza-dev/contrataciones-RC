@@ -33,6 +33,8 @@ type ProyectoResumen = {
   fecha_inicio_proyecto: string;
   fecha_fin_proyecto: string;
   horas_proyectadas: number;
+  // Cantidad total de tramos del proyecto a nivel global. >1 ⇒ transferido.
+  tramos_total: number;
   meses: {
     mes: number;
     horas_estimadas: number | null;
