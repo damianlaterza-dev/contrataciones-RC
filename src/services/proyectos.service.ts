@@ -77,6 +77,7 @@ export async function transferirProyecto(input: {
     const contratoDestino = await tx.contratos.findUnique({
       where: { id: contrato_destino_id },
       include: {
+        renglones: { select: { cantidad_horas: true } },
         incrementos: { select: { horas_extra: true } },
         proyectos: { select: { horas_proyectadas: true } },
       },
@@ -84,14 +85,15 @@ export async function transferirProyecto(input: {
     if (!contratoDestino) {
       throw new Error("Contrato destino no encontrado");
     }
+    const horasRenglones = contratoDestino.renglones.reduce(
+      (sum, r) => sum + (r.cantidad_horas ?? 0),
+      0,
+    );
     const horasExtra = contratoDestino.incrementos.reduce(
       (sum, inc) => sum + inc.horas_extra,
       0,
     );
-    const horasTotales =
-      contratoDestino.cantidad_horas != null
-        ? contratoDestino.cantidad_horas + horasExtra
-        : null;
+    const horasTotales = horasRenglones > 0 ? horasRenglones + horasExtra : null;
     const horasAsignadas = contratoDestino.proyectos.reduce(
       (sum, p) => sum + p.horas_proyectadas,
       0,
@@ -219,8 +221,6 @@ export async function getProyectosWithFilters(filters: ProyectosFilters) {
               numero_expediente: true,
               fecha_inicio: true,
               fecha_fin: true,
-              cantidad_horas: true,
-              valor_hora: true,
               es_accesoridad: true,
               contrato_principal_id: true,
               observaciones: true,
@@ -235,16 +235,5 @@ export async function getProyectosWithFilters(filters: ProyectosFilters) {
 
   const total = await prisma.proyectos.count({ where });
 
-  const data = rawData.map((proyecto) => ({
-    ...proyecto,
-    contrato_proyectos: proyecto.contrato_proyectos.map((cp) => ({
-      ...cp,
-      contratos: {
-        ...cp.contratos,
-        valor_hora: cp.contratos.valor_hora?.toNumber() ?? null,
-      },
-    })),
-  }));
-
-  return { data, total };
+  return { data: rawData, total };
 }

@@ -15,6 +15,7 @@ import { PROVEEDOR_MINISTERIO_ID } from "@/schemas/contratoWizardSchema";
 
 export type TProrroga = {
   id: number;
+  renglon_id: number | null;
   numero_expediente: string | null;
   fecha_fin: Date;
   observacion: string | null;
@@ -23,10 +24,18 @@ export type TProrroga = {
 
 export type TIncremento = {
   id: number;
+  renglon_id: number | null;
   horas_extra: number;
   numero_expediente: string | null;
   observacion: string | null;
   created_at: Date;
+};
+
+export type TRenglon = {
+  id: number;
+  numero: number;
+  cantidad_horas: number | null;
+  valor_hora: number | null;
 };
 
 export type TContrato = {
@@ -37,7 +46,6 @@ export type TContrato = {
   fecha_inicio: Date;
   fecha_fin: Date | null;
   cantidad_horas: number | null;
-  valor_hora: number | null;
   es_accesoridad: boolean | null;
   contrato_principal_id: number | null;
   observaciones: string | null;
@@ -47,6 +55,7 @@ export type TContrato = {
   horas_disponibles: number | null;
   proyecto_ids: number[];
   valor_hora_vigente: number | null;
+  renglones: TRenglon[];
   prorrogas: TProrroga[];
   incrementos: TIncremento[];
   accesorios_count: number;
@@ -116,16 +125,37 @@ export function getContratosColumns({
       },
     },
     {
-      accessorKey: "cantidad_horas",
-      header: "Hs. Contrato",
-      cell: ({ row }) =>
-        row.original.cantidad_horas != null ? (
-          <span className="tabular-nums">
-            {row.original.cantidad_horas.toLocaleString("es-AR")}
-          </span>
-        ) : (
-          <span className="text-muted-foreground">Sin límite</span>
-        ),
+      id: "renglones",
+      header: "Renglones",
+      cell: ({ row }) => {
+        const { renglones } = row.original;
+        if (renglones.length === 0) {
+          return <span className="text-muted-foreground">—</span>;
+        }
+        return (
+          <div className="flex flex-col gap-0.5">
+            {renglones.map((r) => (
+              <span key={r.id} className="tabular-nums text-xs">
+                R{r.numero}:{" "}
+                {r.cantidad_horas != null
+                  ? r.cantidad_horas.toLocaleString("es-AR") + " hs"
+                  : "Sin límite"}
+                {r.valor_hora != null && (
+                  <span className="text-muted-foreground ml-1">
+                    —{" "}
+                    {r.valor_hora.toLocaleString("es-AR", {
+                      style: "currency",
+                      currency: "ARS",
+                      minimumFractionDigits: 0,
+                    })}
+                    /h
+                  </span>
+                )}
+              </span>
+            ))}
+          </div>
+        );
+      },
     },
     {
       id: "horas_totales",
@@ -144,25 +174,6 @@ export function getContratosColumns({
                 (+{extra.toLocaleString("es-AR")})
               </span>
             )}
-          </span>
-        );
-      },
-    },
-    {
-      id: "valor_hora_vigente",
-      header: "$ / Hora",
-      cell: ({ row }) => {
-        const valor = row.original.valor_hora_vigente;
-        if (!valor) {
-          return <span className="text-muted-foreground">—</span>;
-        }
-        return (
-          <span className="tabular-nums">
-            {valor.toLocaleString("es-AR", {
-              style: "currency",
-              currency: "ARS",
-              minimumFractionDigits: 2,
-            })}
           </span>
         );
       },

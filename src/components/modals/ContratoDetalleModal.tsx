@@ -67,7 +67,7 @@ export function ContratoDetalleModal({ contrato, open, onClose }: Props) {
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Contrato original
             </p>
-            <div className="grid grid-cols-3 gap-4 text-sm">
+            <div className="flex flex-col gap-2 text-sm">
               <span className="flex items-center gap-1.5 text-muted-foreground">
                 <CalendarDays size={14} />
                 {formatFecha(contrato.fecha_inicio)} →{" "}
@@ -75,16 +75,27 @@ export function ContratoDetalleModal({ contrato, open, onClose }: Props) {
                   ? formatFecha(contrato.fecha_fin)
                   : "Sin límite"}
               </span>
-              <span className="flex items-center gap-1.5 text-muted-foreground">
-                <Clock size={14} />
-                {contrato.cantidad_horas != null
-                  ? `${contrato.cantidad_horas.toLocaleString("es-AR")} hs`
-                  : "Sin límite"}
-              </span>
-              <span className="flex items-center gap-1.5 text-muted-foreground">
-                <DollarSign size={14} />
-                {formatPesos(contrato.valor_hora)}/h
-              </span>
+              {contrato.renglones.length > 0 && (
+                <div className="flex flex-col gap-1">
+                  {contrato.renglones.map((r) => (
+                    <span
+                      key={r.id}
+                      className="flex items-center gap-1.5 text-muted-foreground">
+                      <Clock size={14} />
+                      <span className="font-medium">R{r.numero}:</span>
+                      {r.cantidad_horas != null
+                        ? `${r.cantidad_horas.toLocaleString("es-AR")} hs`
+                        : "Sin límite"}
+                      {r.valor_hora != null && (
+                        <span className="flex items-center gap-1">
+                          <DollarSign size={14} />
+                          {formatPesos(r.valor_hora)}/h
+                        </span>
+                      )}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
             {contrato.observaciones && (
               <p className="text-xs text-muted-foreground italic">
@@ -193,7 +204,7 @@ export function ContratoDetalleModal({ contrato, open, onClose }: Props) {
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Estado vigente
             </p>
-            <div className="grid grid-cols-3 gap-4 text-sm font-medium">
+            <div className="grid grid-cols-2 gap-4 text-sm font-medium">
               <span className="flex items-center gap-1.5">
                 <CalendarDays size={14} className="text-primary" />
                 {contrato.fecha_fin_vigente
@@ -203,12 +214,8 @@ export function ContratoDetalleModal({ contrato, open, onClose }: Props) {
               <span className="flex items-center gap-1.5">
                 <Clock size={14} className="text-primary" />
                 {contrato.horas_totales != null
-                  ? `${contrato.horas_totales.toLocaleString("es-AR")} hs`
+                  ? `${contrato.horas_totales.toLocaleString("es-AR")} hs totales`
                   : "Sin límite"}
-              </span>
-              <span className="flex items-center gap-1.5">
-                <DollarSign size={14} className="text-primary" />
-                {formatPesos(contrato.valor_hora_vigente)}/h
               </span>
             </div>
           </div>

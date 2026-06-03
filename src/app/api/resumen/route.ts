@@ -23,8 +23,7 @@ export async function GET(request: Request) {
       select: {
         id: true,
         numero_expediente: true,
-        cantidad_horas: true,
-        valor_hora: true,
+        renglones: { select: { numero: true, cantidad_horas: true, valor_hora: true } },
         fecha_inicio: true,
         fecha_fin: true,
         prorrogas: {
@@ -76,17 +75,27 @@ export async function GET(request: Request) {
         0,
       );
 
+      const cantidad_horas_total = contrato.renglones.reduce(
+        (sum, r) => sum + (r.cantidad_horas ?? 0),
+        0,
+      );
+      const cantidad_horas = cantidad_horas_total > 0 ? cantidad_horas_total : null;
+      const renglones = contrato.renglones.map((r) => ({
+        numero: r.numero,
+        cantidad_horas: r.cantidad_horas,
+        valor_hora: r.valor_hora != null ? Number(r.valor_hora) : null,
+      }));
+
       const porcentaje_proyectado =
-        contrato.cantidad_horas != null && contrato.cantidad_horas > 0
-          ? Math.round((horas_proyectadas_total / contrato.cantidad_horas) * 100)
+        cantidad_horas != null && cantidad_horas > 0
+          ? Math.round((horas_proyectadas_total / cantidad_horas) * 100)
           : null;
 
       return {
         id: contrato.id,
         numero_expediente: contrato.numero_expediente,
-        cantidad_horas: contrato.cantidad_horas,
-        valor_hora:
-          contrato.valor_hora == null ? null : Number(contrato.valor_hora),
+        cantidad_horas,
+        renglones,
         fecha_inicio: contrato.fecha_inicio.toISOString().slice(0, 10),
         fecha_fin: contrato.fecha_fin
           ? contrato.fecha_fin.toISOString().slice(0, 10)

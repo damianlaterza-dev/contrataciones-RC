@@ -52,7 +52,7 @@ type ContratoResumen = {
   id: number;
   numero_expediente: string;
   cantidad_horas: number | null;
-  valor_hora: number | null;
+  renglones: { numero: number; cantidad_horas: number | null; valor_hora: number | null }[];
   fecha_inicio: string;
   fecha_fin: string | null;
   prorrogas: { fecha_fin: string }[];
@@ -202,22 +202,51 @@ export function TablaResumen({ contratos, anio }: Props) {
                   </div>
                   {/* Subtítulo */}
                   <div className="text-xs text-muted-foreground mt-0.5">
-                    {contrato.cantidad_horas != null
-                      ? `${contrato.cantidad_horas.toLocaleString("es-AR")} Hs contrato`
-                      : "Sin límite de horas"}
-                    {contrato.valor_hora != null && (
-                      <>
-                        {" "}
-                        •{" "}
-                        {contrato.valor_hora.toLocaleString("es-AR", {
-                          style: "currency",
-                          currency: "ARS",
-                          maximumFractionDigits: 0,
-                        })}
-                        /hr
-                      </>
-                    )}{" "}
-                    •{" "}
+                    {(() => {
+                      const renglonesConHoras = contrato.renglones.filter(
+                        (r) => r.cantidad_horas != null,
+                      );
+                      if (renglonesConHoras.length === 0) {
+                        return "Sin límite de horas";
+                      }
+                      if (renglonesConHoras.length === 1) {
+                        const r = renglonesConHoras[0];
+                        return (
+                          <>
+                            {r.cantidad_horas!.toLocaleString("es-AR")} Hs contrato
+                            {r.valor_hora != null && (
+                              <>
+                                {" "}•{" "}
+                                {r.valor_hora.toLocaleString("es-AR", {
+                                  style: "currency",
+                                  currency: "ARS",
+                                  maximumFractionDigits: 0,
+                                })}
+                                /hr
+                              </>
+                            )}
+                          </>
+                        );
+                      }
+                      return renglonesConHoras.map((r, i) => (
+                        <span key={r.numero}>
+                          {i > 0 && " • "}
+                          R{r.numero}: {r.cantidad_horas!.toLocaleString("es-AR")} hs
+                          {r.valor_hora != null && (
+                            <>
+                              {" "}
+                              {r.valor_hora.toLocaleString("es-AR", {
+                                style: "currency",
+                                currency: "ARS",
+                                maximumFractionDigits: 0,
+                              })}
+                              /hr
+                            </>
+                          )}
+                        </span>
+                      ));
+                    })()}
+                    {" "}•{" "}
                     {contrato.fecha_fin
                       ? `Vence ${formatDate(
                           contrato.prorrogas.length > 0

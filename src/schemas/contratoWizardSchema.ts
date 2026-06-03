@@ -2,6 +2,16 @@ import { z } from "zod";
 
 export const PROVEEDOR_MINISTERIO_ID = 1;
 
+const renglon = z.object({
+  cantidad_horas: z
+    .number({ error: "Debe ser un número entero" })
+    .int()
+    .min(1, "Debe ser mayor a 0"),
+  valor_hora: z.number().positive("Debe ser mayor a 0").optional().nullable(),
+});
+
+export type RenglonData = z.infer<typeof renglon>;
+
 export const contratoStep1Schema = z
   .object({
     proveedor_id: z
@@ -18,13 +28,7 @@ export const contratoStep1Schema = z
       .max(100, "Máximo 100 caracteres"),
     fecha_inicio: z.string().min(1, "La fecha de inicio es requerida"),
     fecha_fin: z.string().optional().nullable(),
-    cantidad_horas: z
-      .number({ error: "Debe ser un número entero" })
-      .int()
-      .min(1, "Debe ser mayor a 0")
-      .optional()
-      .nullable(),
-    valor_hora: z.number().positive("Debe ser mayor a 0").optional().nullable(),
+    renglones: z.array(renglon).optional(),
     es_accesoridad: z.boolean().nullable(),
     contrato_principal_id: z.number().int().positive().optional().nullable(),
     observaciones: z.string().max(1000).optional().nullable(),
@@ -34,8 +38,10 @@ export const contratoStep1Schema = z
     { message: "La fecha de fin es requerida", path: ["fecha_fin"] },
   )
   .refine(
-    (d) => d.proveedor_id === PROVEEDOR_MINISTERIO_ID || d.cantidad_horas != null,
-    { message: "La cantidad de horas es requerida", path: ["cantidad_horas"] },
+    (d) =>
+      d.proveedor_id === PROVEEDOR_MINISTERIO_ID ||
+      (d.renglones && d.renglones.length > 0),
+    { message: "Agregá al menos un renglón", path: ["renglones"] },
   );
 
 export const contratoWizardSchema = contratoStep1Schema;
@@ -45,6 +51,7 @@ export type ContratoWizardData = z.infer<typeof contratoWizardSchema>;
 
 export const prorrogaSchema = z.object({
   contrato_id: z.number().int().positive("El contrato es requerido"),
+  renglon_id: z.number().int().positive("El renglón es requerido"),
   numero_expediente: z
     .string()
     .min(1, "El número de expediente es requerido")
@@ -55,6 +62,7 @@ export const prorrogaSchema = z.object({
 
 export const incrementoSchema = z.object({
   contrato_id: z.number().int().positive("El contrato es requerido"),
+  renglon_id: z.number().int().positive("El renglón es requerido"),
   horas_extra: z
     .number({ error: "Debe ser un número" })
     .int()

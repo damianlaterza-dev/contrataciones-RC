@@ -46,7 +46,7 @@ type ContratoResumen = {
   id: number;
   numero_expediente: string;
   cantidad_horas: number | null;
-  valor_hora: number | null;
+  renglones: { numero: number; cantidad_horas: number | null; valor_hora: number | null }[];
   fecha_inicio: string;
   fecha_fin: string | null;
   prorrogas: { fecha_fin: string }[];

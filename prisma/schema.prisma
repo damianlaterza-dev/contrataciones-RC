@@ -84,8 +84,6 @@ model contratos {
   proveedor_id          Int
   fecha_inicio          DateTime
   fecha_fin             DateTime?
-  cantidad_horas        Int?
-  valor_hora            Decimal?
   es_accesoridad        Boolean?
   contrato_principal_id Int?
   observaciones         String?
@@ -95,33 +93,54 @@ model contratos {
   proyectos             contrato_proyectos[]
   prorrogas             contrato_prorrogas[]
   incrementos           contrato_incrementos[]
+  renglones             contrato_renglones[]
 
   @@index([proveedor_id], map: "idx_contratos_proveedor")
   @@index([contrato_principal_id], map: "idx_contratos_principal")
 }
 
+model contrato_renglones {
+  id             Int                    @id @default(autoincrement())
+  contrato_id    Int
+  numero         Int
+  cantidad_horas Int?
+  valor_hora     Decimal?
+  contratos      contratos              @relation(fields: [contrato_id], references: [id], onDelete: Cascade, map: "fk_renglones_contrato")
+  incrementos    contrato_incrementos[]
+  prorrogas      contrato_prorrogas[]
+
+  @@unique([contrato_id, numero], map: "uq_renglones_contrato_numero")
+  @@index([contrato_id], map: "idx_renglones_contrato")
+}
+
 model contrato_prorrogas {
-  id                Int       @id @default(autoincrement())
+  id                Int                 @id @default(autoincrement())
   contrato_id       Int
+  renglon_id        Int?
   numero_expediente String?
   fecha_fin         DateTime
   observacion       String?
-  created_at        DateTime  @default(now())
-  contratos         contratos @relation(fields: [contrato_id], references: [id], onDelete: Cascade, map: "fk_prorrogas_contrato")
+  created_at        DateTime            @default(now())
+  contratos         contratos           @relation(fields: [contrato_id], references: [id], onDelete: Cascade, map: "fk_prorrogas_contrato")
+  renglon           contrato_renglones? @relation(fields: [renglon_id], references: [id], onDelete: SetNull, map: "fk_prorrogas_renglon")
 
   @@index([contrato_id], map: "idx_prorrogas_contrato")
+  @@index([renglon_id], map: "idx_prorrogas_renglon")
 }
 
 model contrato_incrementos {
-  id                Int       @id @default(autoincrement())
+  id                Int                 @id @default(autoincrement())
   contrato_id       Int
+  renglon_id        Int?
   horas_extra       Int
   numero_expediente String?
   observacion       String?
-  created_at        DateTime  @default(now())
-  contratos         contratos @relation(fields: [contrato_id], references: [id], onDelete: Cascade, map: "fk_incrementos_contrato")
+  created_at        DateTime            @default(now())
+  contratos         contratos           @relation(fields: [contrato_id], references: [id], onDelete: Cascade, map: "fk_incrementos_contrato")
+  renglon           contrato_renglones? @relation(fields: [renglon_id], references: [id], onDelete: SetNull, map: "fk_incrementos_renglon")
 
   @@index([contrato_id], map: "idx_incrementos_contrato")
+  @@index([renglon_id], map: "idx_incrementos_renglon")
 }
 
 model proveedores {

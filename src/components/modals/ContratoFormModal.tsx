@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useForm } from "react-hook-form";
+import { useFieldArray, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
@@ -68,7 +68,13 @@ export function ContratoFormModal({ open, onClose }: Props) {
       contrato_principal_id: null,
       fecha_inicio: "",
       fecha_fin: "",
+      renglones: [{ cantidad_horas: undefined as unknown as number, valor_hora: null }],
     },
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: "renglones",
   });
 
   const queryClient = useQueryClient();
@@ -103,8 +109,7 @@ export function ContratoFormModal({ open, onClose }: Props) {
       contrato_principal_id: null,
       fecha_inicio: "",
       fecha_fin: "",
-      cantidad_horas: undefined,
-      valor_hora: null,
+      renglones: [{ cantidad_horas: undefined as unknown as number, valor_hora: null }],
       observaciones: "",
     });
     onClose();
@@ -155,9 +160,6 @@ export function ContratoFormModal({ open, onClose }: Props) {
                 if (id === PROVEEDOR_MINISTERIO_ID) {
                   setFechaFin(undefined);
                   form.setValue("fecha_fin", null, { shouldValidate: true });
-                  form.setValue("cantidad_horas", null, {
-                    shouldValidate: true,
-                  });
                 }
               }}>
               <SelectTrigger disabled={isLoadingProveedores}>
@@ -302,70 +304,115 @@ export function ContratoFormModal({ open, onClose }: Props) {
             </Field>
           )}
 
-          {/* Horas y valor hora */}
+          {/* Renglones */}
           {!esMinisterio && (
-            <Field className="col-span-6">
-              <FieldLabel htmlFor="cantidad_horas">
-                Cantidad de horas
-              </FieldLabel>
-              <Input
-                id="cantidad_horas"
-                type="text"
-                inputMode="numeric"
-                placeholder="1200"
-                {...form.register("cantidad_horas", {
-                  setValueAs: (value) => {
-                    if (value == null || String(value).trim() === "") {
-                      return undefined;
-                    }
-                    return Number(value);
-                  },
-                })}
-              />
-              {form.formState.errors.cantidad_horas && (
+            <div className="col-span-12 flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium">Renglones</p>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() =>
+                    append({ cantidad_horas: undefined as unknown as number, valor_hora: null })
+                  }>
+                  + Agregar renglón
+                </Button>
+              </div>
+              {fields.map((field, index) => {
+                const rError = form.formState.errors.renglones?.[index];
+                return (
+                  <div
+                    key={field.id}
+                    className="grid grid-cols-12 gap-3 items-end rounded-lg border p-3">
+                    <p className="col-span-12 text-xs font-medium text-muted-foreground">
+                      Renglón {index + 1}
+                    </p>
+                    <Field className="col-span-12 sm:col-span-5">
+                      <FieldLabel>Cantidad de horas</FieldLabel>
+                      <Input
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="1200"
+                        aria-invalid={!!rError?.cantidad_horas}
+                        {...form.register(`renglones.${index}.cantidad_horas`, {
+                          setValueAs: (v) => {
+                            if (v == null || String(v).trim() === "") return undefined;
+                            return Number(v);
+                          },
+                        })}
+                      />
+                      {rError?.cantidad_horas && (
+                        <FieldError>
+                          <p>{rError.cantidad_horas.message}</p>
+                        </FieldError>
+                      )}
+                    </Field>
+                    <Field className="col-span-12 sm:col-span-5">
+                      <FieldLabel>
+                        Valor hora{" "}
+                        <span className="text-muted-foreground font-normal">
+                          (opcional)
+                        </span>
+                      </FieldLabel>
+                      {(() => {
+                        const vhField = form.register(
+                          `renglones.${index}.valor_hora`,
+                          {
+                            setValueAs: (v) => {
+                              if (v == null || String(v).trim() === "") return null;
+                              const cleaned = String(v).replace(/,/g, ".");
+                              const n = Number(cleaned);
+                              return Number.isFinite(n) ? n : null;
+                            },
+                          },
+                        );
+                        return (
+                          <Input
+                            type="text"
+                            inputMode="decimal"
+                            placeholder="1500.00"
+                            aria-invalid={!!rError?.valor_hora}
+                            {...vhField}
+                            onChange={(e) => {
+                              e.target.value = e.target.value.replace(/,/g, ".");
+                              vhField.onChange(e);
+                            }}
+                          />
+                        );
+                      })()}
+                      {rError?.valor_hora && (
+                        <FieldError>
+                          <p>{rError.valor_hora.message}</p>
+                        </FieldError>
+                      )}
+                    </Field>
+                    {index > 0 && (
+                      <div className="col-span-12 sm:col-span-2 flex sm:justify-end">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => remove(index)}>
+                          Quitar
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+              {form.formState.errors.renglones?.root && (
                 <FieldError>
-                  <p>{form.formState.errors.cantidad_horas.message}</p>
+                  <p>{form.formState.errors.renglones.root.message}</p>
                 </FieldError>
               )}
-            </Field>
+              {typeof form.formState.errors.renglones?.message === "string" && (
+                <FieldError>
+                  <p>{form.formState.errors.renglones.message}</p>
+                </FieldError>
+              )}
+            </div>
           )}
-
-          <Field className="col-span-6">
-            <FieldLabel htmlFor="valor_hora">
-              Valor hora{" "}
-              <span className="text-muted-foreground font-normal">
-                (opcional)
-              </span>
-            </FieldLabel>
-            {(() => {
-              const valorHoraField = form.register("valor_hora", {
-                setValueAs: (v) => {
-                  if (v == null || String(v).trim() === "") return null;
-                  const cleaned = String(v).replace(/,/g, ".");
-                  const n = Number(cleaned);
-                  return Number.isFinite(n) ? n : null;
-                },
-              });
-              return (
-                <Input
-                  id="valor_hora"
-                  type="text"
-                  inputMode="decimal"
-                  placeholder="1500.00"
-                  {...valorHoraField}
-                  onChange={(e) => {
-                    e.target.value = e.target.value.replace(/,/g, ".");
-                    valorHoraField.onChange(e);
-                  }}
-                />
-              );
-            })()}
-            {form.formState.errors.valor_hora && (
-              <FieldError>
-                <p>{form.formState.errors.valor_hora.message}</p>
-              </FieldError>
-            )}
-          </Field>
 
           {/* Es accesoridad */}
           <Field className="col-span-12 lg:col-span-6">

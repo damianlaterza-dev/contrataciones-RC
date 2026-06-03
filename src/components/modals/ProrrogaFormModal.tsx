@@ -17,6 +17,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -33,6 +40,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { contratosKeys } from "@/lib/queryKeys";
 import { TContrato } from "@/components/datatable/contratos/columns";
 import { Badge } from "../ui/badge";
+import { PROVEEDOR_MINISTERIO_ID } from "@/schemas/contratoWizardSchema";
 
 type Props = { contrato: TContrato; open: boolean; onClose: () => void };
 
@@ -46,6 +54,7 @@ export function ProrrogaFormModal({ contrato, open, onClose }: Props) {
     resolver: zodResolver(prorrogaSchema),
     defaultValues: {
       contrato_id: contrato.id,
+      renglon_id: contrato.renglones[0]?.id ?? undefined,
       numero_expediente: "",
       fecha_fin: "",
       observacion: null,
@@ -59,6 +68,7 @@ export function ProrrogaFormModal({ contrato, open, onClose }: Props) {
     setFechaFin(undefined);
     form.reset({
       contrato_id: contrato.id,
+      renglon_id: contrato.renglones[0]?.id ?? undefined,
       numero_expediente: "",
       fecha_fin: "",
       observacion: null,
@@ -97,6 +107,36 @@ export function ProrrogaFormModal({ contrato, open, onClose }: Props) {
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="grid grid-cols-12 gap-4 mt-2">
+          {/* Renglón */}
+          {contrato.renglones.length > 0 && contrato.proveedor_id !== PROVEEDOR_MINISTERIO_ID && (
+            <Field className="col-span-12">
+              <FieldLabel>Renglón</FieldLabel>
+              <Select
+                value={form.watch("renglon_id")?.toString() ?? ""}
+                onValueChange={(v) =>
+                  form.setValue("renglon_id", Number(v), { shouldValidate: true })
+                }>
+                <SelectTrigger aria-invalid={!!form.formState.errors.renglon_id}>
+                  <SelectValue placeholder="Seleccioná un renglón" />
+                </SelectTrigger>
+                <SelectContent>
+                  {contrato.renglones.map((r) => (
+                    <SelectItem key={r.id} value={String(r.id)}>
+                      Renglón {r.numero}
+                      {r.cantidad_horas != null &&
+                        ` — ${r.cantidad_horas.toLocaleString("es-AR")} hs`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {form.formState.errors.renglon_id && (
+                <FieldError>
+                  <p>{form.formState.errors.renglon_id.message}</p>
+                </FieldError>
+              )}
+            </Field>
+          )}
+
           <Field className="col-span-12">
             <FieldLabel htmlFor="numero_expediente">
               N° de expediente

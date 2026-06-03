@@ -58,8 +58,8 @@ export async function createProyecto(data: ProyectoData) {
         const contrato = await tx.contratos.findUnique({
           where: { id: contrato_id },
           select: {
-            cantidad_horas: true,
             fecha_fin: true,
+            renglones: { select: { cantidad_horas: true } },
             incrementos: { select: { horas_extra: true } },
             proyectos: { select: { horas_proyectadas: true } },
             prorrogas: { select: { fecha_fin: true } },
@@ -82,14 +82,15 @@ export async function createProyecto(data: ProyectoData) {
           }
         }
 
+        const horasRenglones = contrato.renglones.reduce(
+          (sum: number, r: { cantidad_horas: number | null }) => sum + (r.cantidad_horas ?? 0),
+          0,
+        );
         const horasExtra = contrato.incrementos.reduce(
           (sum: number, inc: { horas_extra: number }) => sum + inc.horas_extra,
           0,
         );
-        const horasTotales =
-          contrato.cantidad_horas != null
-            ? contrato.cantidad_horas + horasExtra
-            : null;
+        const horasTotales = horasRenglones > 0 ? horasRenglones + horasExtra : null;
         const horasAsignadas = contrato.proyectos.reduce(
           (sum, p) => sum + p.horas_proyectadas,
           0,

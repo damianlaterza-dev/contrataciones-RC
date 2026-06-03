@@ -45,7 +45,9 @@
       "Bash(cp public/favicon.svg src/app/icon.svg)",
       "Bash(rm src/app/favicon.ico)",
       "Bash(PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION=\"si, hazlo.\" npx prisma migrate reset --force)",
-      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(d.get\\('scripts',{}\\).get\\('db:migrate','not found'\\)\\)\")"
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(d.get\\('scripts',{}\\).get\\('db:migrate','not found'\\)\\)\")",
+      "Bash(ssh -T git@github.com)",
+      "Bash(echo \"Exit: $?\")"
     ]
   }
 }

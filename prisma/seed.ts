@@ -66,14 +66,13 @@ async function main() {
 
   // Contrato base del Ministerio — destino para transferencias internas.
   // Why: cuando un proyecto se transfiere "al Ministerio" (sale del proveedor
-  // externo), se asigna a este contrato dummy. fecha_fin y cantidad_horas son
-  // null porque el contrato del Ministerio no tiene fecha límite ni tope de
-  // horas (regla de negocio).
-  await prisma.contratos.upsert({
+  // externo), se asigna a este contrato dummy. fecha_fin es null porque el
+  // contrato del Ministerio no tiene fecha límite ni tope de horas
+  // (regla de negocio). Se crea un renglón oculto nulo para satisfacer FKs.
+  const contratoMinisterio = await prisma.contratos.upsert({
     where: { numero_expediente: "INTERNO-MINISTERIO" },
     update: {
       fecha_fin: null,
-      cantidad_horas: null,
     },
     create: {
       nombre: "Desarrollo interno del Ministerio",
@@ -81,12 +80,19 @@ async function main() {
       proveedor_id: 1,
       fecha_inicio: new Date("2024-01-01"),
       fecha_fin: null,
-      cantidad_horas: null,
-      valor_hora: null,
       observaciones:
         "Contrato base creado por defecto. Recibe transferencias internas de proyectos al Ministerio.",
     },
   });
+  // Crear renglón oculto si todavía no existe
+  const existeRenglon = await prisma.contrato_renglones.findFirst({
+    where: { contrato_id: contratoMinisterio.id, numero: 1 },
+  });
+  if (!existeRenglon) {
+    await prisma.contrato_renglones.create({
+      data: { contrato_id: contratoMinisterio.id, numero: 1, cantidad_horas: null, valor_hora: null },
+    });
+  }
 
   // Sincronizar secuencias de PostgreSQL después de upserts con id explícito.
   // Why: insertar con `id: 1` no avanza la secuencia, entonces el primer

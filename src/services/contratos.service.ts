@@ -62,9 +62,9 @@ export async function getAllContratosForSelect() {
       nombre: true,
       numero_expediente: true,
       proveedor_id: true,
-      cantidad_horas: true,
       fecha_inicio: true,
       fecha_fin: true,
+      renglones: { select: { cantidad_horas: true } },
       incrementos: {
         select: { horas_extra: true },
         orderBy: { created_at: "asc" },
@@ -80,12 +80,15 @@ export async function getAllContratosForSelect() {
   });
 
   return data.map((c) => {
+    const horasRenglones = c.renglones.reduce(
+      (sum, r) => sum + (r.cantidad_horas ?? 0),
+      0,
+    );
     const horasExtra = c.incrementos.reduce(
       (sum, inc) => sum + inc.horas_extra,
       0,
     );
-    const horasTotales =
-      c.cantidad_horas != null ? c.cantidad_horas + horasExtra : null;
+    const horasTotales = horasRenglones > 0 ? horasRenglones + horasExtra : null;
     const horasAsignadas = c.proyectos.reduce(
       (sum, p) => sum + p.horas_proyectadas,
       0,
@@ -129,6 +132,7 @@ export async function getContratos(filters: ContratosFilters) {
       include: {
         prorrogas: { orderBy: { created_at: "asc" } },
         incrementos: { orderBy: { created_at: "asc" } },
+        renglones: { orderBy: { numero: "asc" } },
         accesorios: { select: { id: true } },
         proyectos: {
           select: {
@@ -151,10 +155,12 @@ export async function getContratos(filters: ContratosFilters) {
       (sum, proyecto) => sum + proyecto.horas_proyectadas,
       0,
     );
-    const horasTotales =
-      contrato.cantidad_horas != null
-        ? contrato.cantidad_horas + horasExtraTotal
-        : null;
+    const horasRenglones = contrato.renglones.reduce(
+      (sum, r) => sum + (r.cantidad_horas ?? 0),
+      0,
+    );
+    const horasTotales = horasRenglones > 0 ? horasRenglones + horasExtraTotal : null;
+    const cantidadHorasBase = horasRenglones > 0 ? horasRenglones : null;
 
     return {
       id: contrato.id,
@@ -163,8 +169,7 @@ export async function getContratos(filters: ContratosFilters) {
       proveedor_id: contrato.proveedor_id,
       fecha_inicio: contrato.fecha_inicio,
       fecha_fin: contrato.fecha_fin,
-      cantidad_horas: contrato.cantidad_horas,
-      valor_hora: contrato.valor_hora?.toNumber() ?? null,
+      cantidad_horas: cantidadHorasBase,
       es_accesoridad: contrato.es_accesoridad,
       contrato_principal_id: contrato.contrato_principal_id,
       observaciones: contrato.observaciones,
@@ -174,9 +179,16 @@ export async function getContratos(filters: ContratosFilters) {
       horas_disponibles:
         horasTotales != null ? Math.max(horasTotales - horasAsignadas, 0) : null,
       proyecto_ids: contrato.proyectos.map((proyecto) => proyecto.proyecto_id),
-      valor_hora_vigente: contrato.valor_hora?.toNumber() ?? null,
+      valor_hora_vigente: contrato.renglones[0]?.valor_hora?.toNumber() ?? null,
+      renglones: contrato.renglones.map((r) => ({
+        id: r.id,
+        numero: r.numero,
+        cantidad_horas: r.cantidad_horas,
+        valor_hora: r.valor_hora?.toNumber() ?? null,
+      })),
       prorrogas: contrato.prorrogas.map((prorroga) => ({
         id: prorroga.id,
+        renglon_id: prorroga.renglon_id,
         numero_expediente: prorroga.numero_expediente ?? null,
         fecha_fin: prorroga.fecha_fin,
         observacion: prorroga.observacion,
@@ -184,6 +196,7 @@ export async function getContratos(filters: ContratosFilters) {
       })),
       incrementos: contrato.incrementos.map((inc) => ({
         id: inc.id,
+        renglon_id: inc.renglon_id,
         horas_extra: inc.horas_extra,
         numero_expediente: inc.numero_expediente ?? null,
         observacion: inc.observacion,

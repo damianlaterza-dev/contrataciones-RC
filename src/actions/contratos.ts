@@ -35,8 +35,7 @@ export async function createContratoCompleto(data: ContratoWizardData) {
     proveedor_id,
     fecha_inicio,
     fecha_fin,
-    cantidad_horas,
-    valor_hora,
+    renglones,
     es_accesoridad,
     contrato_principal_id,
     observaciones,
@@ -54,19 +53,34 @@ export async function createContratoCompleto(data: ContratoWizardData) {
   }
 
   try {
-    await prisma.contratos.create({
-      data: {
-        nombre,
-        numero_expediente,
-        proveedor_id,
-        fecha_inicio: new Date(fecha_inicio),
-        fecha_fin: fecha_fin ? new Date(fecha_fin) : null,
-        cantidad_horas: cantidad_horas ?? null,
-        valor_hora: valor_hora ?? null,
-        es_accesoridad: es_accesoridad ?? null,
-        contrato_principal_id: contrato_principal_id ?? null,
-        observaciones: observaciones ?? null,
-      },
+    await prisma.$transaction(async (tx) => {
+      const contrato = await tx.contratos.create({
+        data: {
+          nombre,
+          numero_expediente,
+          proveedor_id,
+          fecha_inicio: new Date(fecha_inicio),
+          fecha_fin: fecha_fin ? new Date(fecha_fin) : null,
+          es_accesoridad: es_accesoridad ?? null,
+          contrato_principal_id: contrato_principal_id ?? null,
+          observaciones: observaciones ?? null,
+        },
+      });
+
+      if (proveedor_id === PROVEEDOR_MINISTERIO_ID) {
+        await tx.contrato_renglones.create({
+          data: { contrato_id: contrato.id, numero: 1, cantidad_horas: null, valor_hora: null },
+        });
+      } else if (renglones && renglones.length > 0) {
+        await tx.contrato_renglones.createMany({
+          data: renglones.map((r, i) => ({
+            contrato_id: contrato.id,
+            numero: i + 1,
+            cantidad_horas: r.cantidad_horas,
+            valor_hora: r.valor_hora ?? null,
+          })),
+        });
+      }
     });
 
     revalidatePath("/contratos");
@@ -117,9 +131,8 @@ export async function assignProyectoToContrato(data: {
     const contrato = await prisma.contratos.findUnique({
       where: { id: contrato_id },
       include: {
-        incrementos: {
-          select: { horas_extra: true },
-        },
+        renglones: { select: { cantidad_horas: true } },
+        incrementos: { select: { horas_extra: true } },
         proyectos: {
           select: {
             proyecto_id: true,
@@ -142,14 +155,15 @@ export async function assignProyectoToContrato(data: {
       return { success: false, message: "Proyecto no encontrado" };
     }
 
+    const horasRenglones = contrato.renglones.reduce(
+      (sum, r) => sum + (r.cantidad_horas ?? 0),
+      0,
+    );
     const horasExtra = contrato.incrementos.reduce(
       (sum, inc) => sum + inc.horas_extra,
       0,
     );
-    const horasTotales =
-      contrato.cantidad_horas != null
-        ? contrato.cantidad_horas + horasExtra
-        : null;
+    const horasTotales = horasRenglones > 0 ? horasRenglones + horasExtra : null;
     const horasAsignadas = contrato.proyectos.reduce(
       (sum, item) => sum + item.horas_proyectadas,
       0,
@@ -165,8 +179,6 @@ export async function assignProyectoToContrato(data: {
       }
     }
 
-    // Default del tramo = fechas del proyecto. Si en el futuro se llama esta
-    // action con fechas explícitas (ej. asignar parcialmente), se respetan.
     const fechaInicioTramo = fecha_inicio_vinculo
       ? new Date(fecha_inicio_vinculo)
       : proyecto.fecha_inicio;
@@ -227,12 +239,8 @@ export async function addProrroga(data: ProrrogaData) {
   if (!result.success) {
     return { success: false, message: "Datos inválidos" };
   }
-  const { contrato_id, numero_expediente, fecha_fin, observacion } = result.data;
+  const { contrato_id, renglon_id, numero_expediente, fecha_fin, observacion } = result.data;
   try {
-    // Si el proyecto excede la fecha del contrato (estado válido sin prórroga),
-    // no se permite crear la primera prórroga hasta ajustar esas fechas.
-    // Why: la regla cruzada es "con prórroga, proyecto no puede exceder", entonces
-    // habilitar la prórroga sin ajustar dejaría datos inválidos por la nueva regla.
     const contrato = await prisma.contratos.findUnique({
       where: { id: contrato_id },
       select: { fecha_fin: true },
@@ -247,6 +255,14 @@ export async function addProrroga(data: ProrrogaData) {
           "No se puede prorrogar un contrato sin fecha de fin (Ministerio).",
       };
     }
+
+    const renglon = await prisma.contrato_renglones.findFirst({
+      where: { id: renglon_id, contrato_id },
+    });
+    if (!renglon) {
+      return { success: false, message: "Renglón no encontrado para este contrato" };
+    }
+
     const proyectosExtendidos = await prisma.proyectos.findMany({
       where: {
         contrato_proyectos: { some: { contrato_id } },
@@ -265,6 +281,7 @@ export async function addProrroga(data: ProrrogaData) {
     await prisma.contrato_prorrogas.create({
       data: {
         contrato_id,
+        renglon_id,
         numero_expediente: numero_expediente ?? null,
         fecha_fin: new Date(fecha_fin),
         observacion: observacion ?? null,
@@ -339,7 +356,7 @@ export async function addIncremento(data: IncrementoData) {
   if (!result.success) {
     return { success: false, message: "Datos inválidos" };
   }
-  const { contrato_id, horas_extra, numero_expediente, observacion } = result.data;
+  const { contrato_id, renglon_id, horas_extra, numero_expediente, observacion } = result.data;
   try {
     const contrato = await prisma.contratos.findUnique({
       where: { id: contrato_id },
@@ -355,9 +372,14 @@ export async function addIncremento(data: IncrementoData) {
           "No se puede incrementar horas a un contrato del Ministerio (no tiene tope).",
       };
     }
-    // No tiene sentido incrementar horas si el contrato no tiene proyectos
-    // asignados — no hay a quién distribuir el incremento.
-    // Defensa en profundidad: el dropdown ya lo deshabilita en UI.
+
+    const renglon = await prisma.contrato_renglones.findFirst({
+      where: { id: renglon_id, contrato_id },
+    });
+    if (!renglon) {
+      return { success: false, message: "Renglón no encontrado para este contrato" };
+    }
+
     const cantidadTramos = await prisma.contrato_proyectos.count({
       where: { contrato_id },
     });
@@ -372,6 +394,7 @@ export async function addIncremento(data: IncrementoData) {
     await prisma.contrato_incrementos.create({
       data: {
         contrato_id,
+        renglon_id,
         horas_extra,
         numero_expediente: numero_expediente ?? null,
         observacion: observacion ?? null,

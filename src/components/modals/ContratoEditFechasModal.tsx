@@ -37,8 +37,10 @@ type Props = {
 
 function parseDateString(str: string | Date | null | undefined): Date | undefined {
   if (!str) return undefined;
-  const d = new Date(str);
-  return isNaN(d.getTime()) ? undefined : d;
+  const s = typeof str === "string" ? str : str.toISOString();
+  const match = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!match) return undefined;
+  return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
 }
 
 export function ContratoEditFechasModal({ contrato, open, onClose }: Props) {
