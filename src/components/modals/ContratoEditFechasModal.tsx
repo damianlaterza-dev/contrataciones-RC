@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useEffect, useTransition } from "react";
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import {
@@ -62,6 +62,17 @@ export function ContratoEditFechasModal({ contrato, open, onClose }: Props) {
   const [fechaFinExtendida, setFechaFinExtendida] = useState<Date | undefined>(
     parseDateString(ultimaProrroga?.fecha_fin as unknown as string),
   );
+
+  // Resetear fechas cuando cambia el contrato seleccionado para evitar que
+  // queden "pegadas" las fechas del contrato anterior.
+  useEffect(() => {
+    const ultima = contrato.prorrogas.length > 0
+      ? contrato.prorrogas[contrato.prorrogas.length - 1]
+      : null;
+    setFechaInicio(parseDateString(contrato.fecha_inicio as unknown as string));
+    setFechaFin(parseDateString(contrato.fecha_fin as unknown as string));
+    setFechaFinExtendida(parseDateString(ultima?.fecha_fin as unknown as string));
+  }, [contrato.id]);
 
   const [openFechaInicio, setOpenFechaInicio] = useState(false);
   const [openFechaFin, setOpenFechaFin] = useState(false);

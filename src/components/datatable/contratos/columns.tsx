@@ -49,6 +49,8 @@ export type TContrato = {
   es_accesoridad: boolean | null;
   contrato_principal_id: number | null;
   observaciones: string | null;
+  fechas_updated_by: string | null;
+  fechas_updated_at: Date | null;
   fecha_fin_vigente: Date | null;
   horas_totales: number | null;
   horas_asignadas: number;
@@ -233,7 +235,9 @@ export function getContratosColumns({
               <DropdownMenuItem onClick={() => onVerDetalle(row.original)}>
                 Ver detalle
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onEditar(row.original)}>
+              <DropdownMenuItem
+                onClick={() => onEditar(row.original)}
+                disabled={esMinisterio}>
                 Editar fechas
               </DropdownMenuItem>
               <DropdownMenuItem

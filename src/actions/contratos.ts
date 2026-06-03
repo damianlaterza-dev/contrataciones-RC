@@ -11,6 +11,7 @@ import {
 } from "@/schemas/contratoWizardSchema";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { auth } from "@/auth";
 import { validarSolapeTramoProyecto } from "@/services/contratos.service";
 import { materializarMesesTramo } from "@/services/usoMensual.service";
 
@@ -316,6 +317,9 @@ export async function updateContratoFechas(
     return { success: false, message: "La fecha de inicio es requerida" };
   }
 
+  const session = await auth();
+  const editorEmail = session?.user?.email ?? null;
+
   try {
     await prisma.$transaction(async (tx) => {
       await tx.contratos.update({
@@ -323,6 +327,8 @@ export async function updateContratoFechas(
         data: {
           fecha_inicio: new Date(fecha_inicio),
           fecha_fin: fecha_fin ? new Date(fecha_fin) : null,
+          fechas_updated_by: editorEmail,
+          fechas_updated_at: new Date(),
         },
       });
 

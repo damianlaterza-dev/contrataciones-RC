@@ -87,6 +87,8 @@ model contratos {
   es_accesoridad        Boolean?
   contrato_principal_id Int?
   observaciones         String?
+  fechas_updated_by     String?
+  fechas_updated_at     DateTime?
   proveedores           proveedores            @relation(fields: [proveedor_id], references: [id], onUpdate: Restrict, map: "fk_contratos_proveedor")
   contrato_principal    contratos?             @relation("accesoridad", fields: [contrato_principal_id], references: [id])
   accesorios            contratos[]            @relation("accesoridad")

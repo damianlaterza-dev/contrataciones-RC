@@ -173,6 +173,8 @@ export async function getContratos(filters: ContratosFilters) {
       es_accesoridad: contrato.es_accesoridad,
       contrato_principal_id: contrato.contrato_principal_id,
       observaciones: contrato.observaciones,
+      fechas_updated_by: contrato.fechas_updated_by,
+      fechas_updated_at: contrato.fechas_updated_at,
       fecha_fin_vigente: ultimaProrroga?.fecha_fin ?? contrato.fecha_fin,
       horas_totales: horasTotales,
       horas_asignadas: horasAsignadas,
