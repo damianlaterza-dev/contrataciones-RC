@@ -45,6 +45,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SelectCombobox } from "@/components/ui/select-combobox";
+import { MultiSelect } from "@/components/ui/multi-select";
 import { Input } from "@/components/ui/input";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { useFieldArray, useForm } from "react-hook-form";
@@ -147,7 +148,7 @@ export default function ProyectosPage({
       nombre: "",
       fecha_inicio: "",
       fecha_fin: "",
-      area_id: undefined,
+      area_ids: [],
       contrato_id: undefined,
       horas_proyectadas: undefined,
       uso_mensual: [],
@@ -293,7 +294,7 @@ export default function ProyectosPage({
         setStep(1);
         reset({
           nombre: "",
-          area_id: undefined,
+          area_ids: [],
           contrato_id: undefined,
           horas_proyectadas: undefined,
           uso_mensual: [],
@@ -324,7 +325,7 @@ export default function ProyectosPage({
       // UTC→local que recortaba un día en zonas con offset negativo).
       fecha_inicio: toIsoDateString(proyecto.fecha_inicio),
       fecha_fin: toIsoDateString(proyecto.fecha_fin),
-      area_id: proyecto.area_id,
+      area_ids: proyecto.areas.map((a) => a.area_id),
       estado_id: proyecto.estado_id,
       estado_contratacion_id: proyecto.estado_contratacion_id,
     });
@@ -499,7 +500,7 @@ export default function ProyectosPage({
               nombre: "",
               fecha_inicio: "",
               fecha_fin: "",
-              area_id: undefined,
+              area_ids: [],
               contrato_id: undefined,
               horas_proyectadas: undefined,
               uso_mensual: [],
@@ -562,32 +563,27 @@ export default function ProyectosPage({
                       )}
                     </Field>
                     <Field>
-                      <FieldLabel htmlFor="area_id">Área</FieldLabel>
-                      <Select
-                        value={
-                          watch("area_id") ? String(watch("area_id")) : ""
+                      <FieldLabel>Área/s</FieldLabel>
+                      <MultiSelect
+                        items={areas ?? []}
+                        value={(areas ?? []).filter((a: Area) =>
+                          (watch("area_ids") ?? []).includes(a.id),
+                        )}
+                        onChange={(selected) =>
+                          setValue(
+                            "area_ids",
+                            selected.map((a: Area) => a.id),
+                            { shouldValidate: true },
+                          )
                         }
-                        onValueChange={(value) =>
-                          setValue("area_id", Number(value), {
-                            shouldValidate: true,
-                          })
-                        }>
-                        <SelectTrigger
-                          id="area_id"
-                          aria-invalid={!!errors.area_id}>
-                          <SelectValue placeholder="Seleccioná un área" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {areas?.map((area: Area) => (
-                            <SelectItem key={area.id} value={String(area.id)}>
-                              {area.nombre}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {errors.area_id && (
+                        getLabel={(a: Area) => a.nombre}
+                        getKey={(a: Area) => a.id}
+                        placeholder="Seleccioná áreas"
+                        aria-invalid={!!errors.area_ids}
+                      />
+                      {errors.area_ids && (
                         <FieldError>
-                          <p>{errors.area_id.message}</p>
+                          <p>{errors.area_ids.message}</p>
                         </FieldError>
                       )}
                     </Field>
@@ -902,7 +898,7 @@ export default function ProyectosPage({
                       <Input
                         id="horas_proyectadas"
                         type="text"
-                        aria-invalid={!!errors.horas_proyectadas || excede}
+                        aria-invalid={!!errors.horas_proyectadas}
                         inputMode="numeric"
                         placeholder={
                           horasDisponibles != null
@@ -919,14 +915,12 @@ export default function ProyectosPage({
                         })}
                       />
                       {excede && horasDisponibles != null && (
-                        <FieldError>
-                          <p>
-                            Excede las horas disponibles del contrato (
-                            {horasDisponibles.toLocaleString("es-AR")} hs)
-                          </p>
-                        </FieldError>
+                        <p className="text-sm text-naranja-500">
+                          Has superado el máximo de hs proyectadas (
+                          {horasDisponibles.toLocaleString("es-AR")} hs disponibles)
+                        </p>
                       )}
-                      {errors.horas_proyectadas && !excede && (
+                      {errors.horas_proyectadas && (
                         <FieldError>
                           <p>{errors.horas_proyectadas.message}</p>
                         </FieldError>
@@ -1031,17 +1025,16 @@ export default function ProyectosPage({
                 <Button
                   type="button"
                   variant="primary"
-                  disabled={excede}
                   onClick={async () => {
                     const ok = await trigger([
                       "nombre",
                       "fecha_inicio",
                       "fecha_fin",
-                      "area_id",
+                      "area_ids",
                       "contrato_id",
                       "horas_proyectadas",
                     ]);
-                    if (ok && !excede) setStep(2);
+                    if (ok) setStep(2);
                   }}>
                   Siguiente
                 </Button>
@@ -1106,29 +1099,26 @@ export default function ProyectosPage({
                 </Field>
 
                 <Field>
-                  <FieldLabel>Área</FieldLabel>
-                  <Select
-                    value={
-                      watchEdit("area_id") ? String(watchEdit("area_id")) : ""
+                  <FieldLabel>Área/s</FieldLabel>
+                  <MultiSelect
+                    items={areas ?? []}
+                    value={(areas ?? []).filter((a: Area) =>
+                      (watchEdit("area_ids") ?? []).includes(a.id),
+                    )}
+                    onChange={(selected) =>
+                      setValueEdit(
+                        "area_ids",
+                        selected.map((a: Area) => a.id),
+                        { shouldValidate: true },
+                      )
                     }
-                    onValueChange={(v) =>
-                      setValueEdit("area_id", Number(v), {
-                        shouldValidate: true,
-                      })
-                    }>
-                    <SelectTrigger aria-invalid={!!editErrors.area_id}>
-                      <SelectValue placeholder="Seleccioná un área" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {areas?.map((area: Area) => (
-                        <SelectItem key={area.id} value={String(area.id)}>
-                          {area.nombre}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {editErrors.area_id && (
-                    <FieldError>{editErrors.area_id.message}</FieldError>
+                    getLabel={(a: Area) => a.nombre}
+                    getKey={(a: Area) => a.id}
+                    placeholder="Seleccioná áreas"
+                    aria-invalid={!!editErrors.area_ids}
+                  />
+                  {editErrors.area_ids && (
+                    <FieldError>{editErrors.area_ids.message}</FieldError>
                   )}
                 </Field>
               </div>

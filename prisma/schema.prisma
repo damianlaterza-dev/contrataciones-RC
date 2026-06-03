@@ -33,10 +33,20 @@ model users {
 }
 
 model areas {
-  id        Int         @id @default(autoincrement())
-  nombre    String
-  acronimo  String?     @unique
-  proyectos proyectos[]
+  id              Int              @id @default(autoincrement())
+  nombre          String
+  acronimo        String?          @unique
+  proyecto_areas  proyecto_areas[]
+}
+
+model proyecto_areas {
+  proyecto_id Int
+  area_id     Int
+  proyectos   proyectos @relation(fields: [proyecto_id], references: [id], onDelete: Cascade)
+  areas       areas     @relation(fields: [area_id], references: [id], onUpdate: Restrict)
+
+  @@id([proyecto_id, area_id])
+  @@index([area_id], map: "idx_proyecto_areas_area")
 }
 
 model contrato_proyectos {
@@ -131,9 +141,6 @@ model proyectos {
   fecha_fin              DateTime
   estado_id              Int
   estado_contratacion_id Int                  @default(1)
-  area_id                Int
   contrato_proyectos     contrato_proyectos[]
-  areas                  areas                @relation(fields: [area_id], references: [id], onUpdate: Restrict, map: "fk_proyectos_area")
-
-  @@index([area_id], map: "idx_proyectos_area")
+  areas                  proyecto_areas[]
 }

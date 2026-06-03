@@ -30,7 +30,7 @@ export async function createProyecto(data: ProyectoData) {
     nombre,
     fecha_inicio,
     fecha_fin,
-    area_id,
+    area_ids,
     contrato_id,
     horas_proyectadas,
     uso_mensual,
@@ -46,9 +46,11 @@ export async function createProyecto(data: ProyectoData) {
           nombre,
           fecha_inicio: fechaInicioProyecto,
           fecha_fin: fechaFinProyecto,
-          area_id,
           estado_id: DEFAULT_ESTADO_PROYECTO_ID,
           estado_contratacion_id: DEFAULT_ESTADO_CONTRATACION_ID,
+          areas: {
+            create: area_ids.map((area_id) => ({ area_id })),
+          },
         },
       });
 
@@ -93,14 +95,8 @@ export async function createProyecto(data: ProyectoData) {
           0,
         );
 
-        if (horasTotales != null) {
-          const horasDisponibles = Math.max(horasTotales - horasAsignadas, 0);
-          if (horas_proyectadas > horasDisponibles) {
-            throw new Error(
-              `Las horas proyectadas superan las horas disponibles del contrato (${horasDisponibles} hs)`,
-            );
-          }
-        }
+        // No se bloquea si supera las horas disponibles: el usuario ya fue
+        // advertido en la UI y puede exceder intencionalmente.
 
         const cp = await tx.contrato_proyectos.create({
           data: {
@@ -152,7 +148,7 @@ export async function updateProyecto(id: number, data: EditProyectoData) {
   const result = editProyectoSchema.safeParse(data);
   if (!result.success) return { success: false, message: "Datos inválidos" };
 
-  const { nombre, fecha_inicio, fecha_fin, area_id, estado_id, estado_contratacion_id } =
+  const { nombre, fecha_inicio, fecha_fin, area_ids, estado_id, estado_contratacion_id } =
     result.data;
 
   try {
@@ -163,9 +159,12 @@ export async function updateProyecto(id: number, data: EditProyectoData) {
           nombre,
           fecha_inicio: new Date(fecha_inicio),
           fecha_fin: new Date(fecha_fin),
-          area_id,
           estado_id,
           estado_contratacion_id,
+          areas: {
+            deleteMany: {},
+            create: area_ids.map((area_id) => ({ area_id })),
+          },
         },
       });
 

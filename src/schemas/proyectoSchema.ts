@@ -22,10 +22,9 @@ export const proyectoSchema = z
     fecha_fin: z
       .string()
       .min(1, "La fecha de fin es requerida"),
-    area_id: z
-      .number({ error: "El área es requerida" })
-      .int()
-      .positive("El área es requerida"),
+    area_ids: z
+      .array(z.number({ error: "El área es requerida" }).int().positive())
+      .min(1, "Seleccioná al menos un área"),
     contrato_id: z
       .number({ error: "El contrato es requerido" })
       .int()
@@ -78,10 +77,9 @@ export const editProyectoSchema = z
       .max(150, "Máximo 150 caracteres"),
     fecha_inicio: z.string().min(1, "La fecha de inicio es requerida"),
     fecha_fin: z.string().min(1, "La fecha de fin es requerida"),
-    area_id: z
-      .number({ error: "El área es requerida" })
-      .int()
-      .positive("El área es requerida"),
+    area_ids: z
+      .array(z.number({ error: "El área es requerida" }).int().positive())
+      .min(1, "Seleccioná al menos un área"),
     estado_id: z.number().int().positive(),
     estado_contratacion_id: z.number().int().positive(),
   })

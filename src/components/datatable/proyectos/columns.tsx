@@ -36,10 +36,10 @@ export type TProyecto = {
   fecha_fin: string | Date;
   estado_id: number;
   estado_contratacion_id: number;
-  area_id: number;
   areas: {
-    nombre: string;
-  };
+    area_id: number;
+    areas: { id: number; nombre: string };
+  }[];
   contrato_proyectos: TProyectoTramo[];
 };
 
@@ -72,8 +72,13 @@ export function getProyectosColumns({
       },
     },
     {
-      accessorKey: "areas.nombre",
-      header: "Área",
+      id: "areas",
+      header: "Área/s",
+      cell: ({ row }) => {
+        const names = row.original.areas.map((a) => a.areas.nombre);
+        if (names.length === 0) return <span className="text-muted-foreground">—</span>;
+        return <span>{names.join(", ")}</span>;
+      },
     },
     {
       id: "proveedor_actual",

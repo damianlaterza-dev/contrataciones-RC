@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { ProveedoresFilters } from "@/@types/filters";
 import { contratoEstaVigente } from "@/lib/fechas";
+import { PROVEEDOR_MINISTERIO_ID } from "@/schemas/contratoWizardSchema";
 import type { proveedores } from "@prisma/client";
 
 export type ProveedorConEstado = proveedores & { is_active: boolean };
@@ -53,13 +54,17 @@ export async function getProveedoresPaginated(
   // Activo = al menos un contrato vigente que además tenga un tramo
   // (contrato_proyectos) vigente. Si todos los tramos terminaron, aunque el
   // contrato siga abierto, el proveedor pasa a inactivo.
+  // Excepción: el Ministerio (id reservado) está siempre activo — es la
+  // entidad interna a la que se transfieren proyectos y nunca se "vence".
   const data: ProveedorConEstado[] = rows.map(({ contratos, ...p }) => ({
     ...p,
-    is_active: contratos.some(
-      (c) =>
-        contratoEstaVigente(c, hoy) &&
-        c.proyectos.some((cp) => cp.fecha_fin_vinculo >= hoy),
-    ),
+    is_active:
+      p.id === PROVEEDOR_MINISTERIO_ID ||
+      contratos.some(
+        (c) =>
+          contratoEstaVigente(c, hoy) &&
+          c.proyectos.some((cp) => cp.fecha_fin_vinculo >= hoy),
+      ),
   }));
 
   return { data, total };

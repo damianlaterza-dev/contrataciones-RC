@@ -200,7 +200,7 @@ export async function getProyectosWithFilters(filters: ProyectosFilters) {
   const where = {
     ...(nombre && { nombre: { contains: nombre } }),
     ...(estado_id && { estado_id: parseInt(estado_id) }),
-    ...(area_id && { area_id: parseInt(area_id) }),
+    ...(area_id && { areas: { some: { area_id: parseInt(area_id) } } }),
   };
 
   const rawData = await prisma.proyectos.findMany({
@@ -209,7 +209,7 @@ export async function getProyectosWithFilters(filters: ProyectosFilters) {
     where,
     orderBy: { id: "desc" },
     include: {
-      areas: true,
+      areas: { include: { areas: true } },
       contrato_proyectos: {
         include: {
           contratos: {

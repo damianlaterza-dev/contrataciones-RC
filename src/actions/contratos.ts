@@ -281,6 +281,59 @@ export async function addProrroga(data: ProrrogaData) {
   }
 }
 
+export async function updateContratoFechas(
+  contrato_id: number,
+  data: {
+    fecha_inicio: string;
+    fecha_fin: string | null;
+    fecha_fin_extendida: string | null;
+  },
+) {
+  if (!Number.isInteger(contrato_id) || contrato_id <= 0) {
+    return { success: false, message: "ID de contrato inválido" };
+  }
+
+  const { fecha_inicio, fecha_fin, fecha_fin_extendida } = data;
+
+  if (!fecha_inicio) {
+    return { success: false, message: "La fecha de inicio es requerida" };
+  }
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.contratos.update({
+        where: { id: contrato_id },
+        data: {
+          fecha_inicio: new Date(fecha_inicio),
+          fecha_fin: fecha_fin ? new Date(fecha_fin) : null,
+        },
+      });
+
+      if (fecha_fin_extendida) {
+        const ultimaProrroga = await tx.contrato_prorrogas.findFirst({
+          where: { contrato_id },
+          orderBy: { created_at: "desc" },
+        });
+        if (ultimaProrroga) {
+          await tx.contrato_prorrogas.update({
+            where: { id: ultimaProrroga.id },
+            data: { fecha_fin: new Date(fecha_fin_extendida) },
+          });
+        }
+      }
+    });
+
+    revalidatePath("/contratos");
+    return { success: true, message: "Fechas actualizadas correctamente" };
+  } catch (error) {
+    console.error("Error updating contrato fechas:", error);
+    return {
+      success: false,
+      message: "Ha ocurrido un error al actualizar las fechas",
+    };
+  }
+}
+
 export async function addIncremento(data: IncrementoData) {
   const result = incrementoSchema.safeParse(data);
   if (!result.success) {

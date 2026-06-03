@@ -56,12 +56,14 @@ type ColumnCallbacks = {
   onVerDetalle: (contrato: TContrato) => void;
   onAgregarProrroga: (contrato: TContrato) => void;
   onAgregarIncremento: (contrato: TContrato) => void;
+  onEditar: (contrato: TContrato) => void;
 };
 
 export function getContratosColumns({
   onVerDetalle,
   onAgregarProrroga,
   onAgregarIncremento,
+  onEditar,
 }: ColumnCallbacks): ColumnDef<TContrato>[] {
   return [
     {
@@ -219,6 +221,9 @@ export function getContratosColumns({
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => onVerDetalle(row.original)}>
                 Ver detalle
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onEditar(row.original)}>
+                Editar fechas
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => onAgregarProrroga(row.original)}

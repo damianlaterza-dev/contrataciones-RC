@@ -337,16 +337,29 @@ export function ContratoFormModal({ open, onClose }: Props) {
                 (opcional)
               </span>
             </FieldLabel>
-            <Input
-              id="valor_hora"
-              type="text"
-              inputMode="numeric"
-              placeholder="1500.00"
-              {...form.register("valor_hora", {
-                setValueAs: (v) =>
-                  v == null || String(v).trim() === "" ? null : Number(v),
-              })}
-            />
+            {(() => {
+              const valorHoraField = form.register("valor_hora", {
+                setValueAs: (v) => {
+                  if (v == null || String(v).trim() === "") return null;
+                  const cleaned = String(v).replace(/,/g, ".");
+                  const n = Number(cleaned);
+                  return Number.isFinite(n) ? n : null;
+                },
+              });
+              return (
+                <Input
+                  id="valor_hora"
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="1500.00"
+                  {...valorHoraField}
+                  onChange={(e) => {
+                    e.target.value = e.target.value.replace(/,/g, ".");
+                    valorHoraField.onChange(e);
+                  }}
+                />
+              );
+            })()}
             {form.formState.errors.valor_hora && (
               <FieldError>
                 <p>{form.formState.errors.valor_hora.message}</p>

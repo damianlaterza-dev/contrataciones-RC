@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/dialog";
 import { ContratoDetalleModal } from "@/components/modals/ContratoDetalleModal";
 import { ContratoFormModal } from "@/components/modals/ContratoFormModal";
+import { ContratoEditFechasModal } from "@/components/modals/ContratoEditFechasModal";
 import { ProrrogaFormModal } from "@/components/modals/ProrrogaFormModal";
 import { IncrementoHsFormModal } from "@/components/modals/IncrementoHsFormModal";
 
@@ -40,6 +41,7 @@ export default function ContratosPage({
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isNuevoOpen, setIsNuevoOpen] = useState(false);
   const [isDetalleOpen, setIsDetalleOpen] = useState(false);
+  const [isEditarFechasOpen, setIsEditarFechasOpen] = useState(false);
   const [isProrrogaOpen, setIsProrrogaOpen] = useState(false);
   const [isIncrementoOpen, setIsIncrementoOpen] = useState(false);
   const [contratoSeleccionado, setContratoSeleccionado] =
@@ -51,6 +53,10 @@ export default function ContratosPage({
         onVerDetalle: (contrato) => {
           setContratoSeleccionado(contrato);
           setIsDetalleOpen(true);
+        },
+        onEditar: (contrato) => {
+          setContratoSeleccionado(contrato);
+          setIsEditarFechasOpen(true);
         },
         onAgregarProrroga: (contrato) => {
           setContratoSeleccionado(contrato);
@@ -159,6 +165,14 @@ export default function ContratosPage({
           contrato={contratoSeleccionado}
           open={isDetalleOpen}
           onClose={() => setIsDetalleOpen(false)}
+        />
+      )}
+
+      {contratoSeleccionado && (
+        <ContratoEditFechasModal
+          contrato={contratoSeleccionado}
+          open={isEditarFechasOpen}
+          onClose={() => setIsEditarFechasOpen(false)}
         />
       )}
 
